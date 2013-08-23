@@ -1,0 +1,185 @@
+package org.set4j;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import org.set4j.impl.ClassHandler;
+
+/**
+ * @author Tomas Mikenda
+ *
+ */
+public class Initializer
+{
+	private static boolean mTraceSuperClass = true;
+	
+	public static <T> T init(T settingObject) throws Set4JException
+	{
+		return initClass(settingObject.getClass(), settingObject, null);
+	}
+	
+	public static <T> T init(Class<T> settingClass) throws Set4JException
+    {
+		return initClass(settingClass, null, null);
+    }
+	
+	public static <T> T init(T settingObject, String args[]) throws Set4JException
+	{
+		return initClass(settingObject.getClass(), settingObject, args);
+	}
+	/*
+	protected static Object init(Class<?> settingClass, Object settingObject, String args[])
+			throws Set4JException
+	{
+		Object instance = settingObject;
+		
+		if (instance == null)
+		{
+		    // is it class or abstract class or interface?
+			if (settingClass.isInterface() || Modifier.isAbstract ( settingClass.getModifiers()))
+			{
+				InvocationHandler handler = new CallHandler(settingClass);
+				/-*Class proxyClass = Proxy.getProxyClass(
+						settingClass.getClassLoader(), new Class[] { settingClass });
+				Foo f = (Foo) proxyClass.
+			         getConstructor(new Class[] { InvocationHandler.class }).
+			         newInstance(new Object[] { handler });*-/
+				instance = Proxy.newProxyInstance(settingClass.getClassLoader(),
+	                     new Class[] { settingClass },
+	                     handler);
+				
+			} else // is class
+			{
+				try
+	            {
+		            instance = settingClass.newInstance();
+	            } catch (Exception e)
+	            {
+	            	throw new Set4JException(/-*"Error instancing class " + settingClass.getName(),*-/ e);
+	            }
+			}
+		}
+		
+		initClass("", settingClass, instance, args);
+		
+
+		return instance;
+	}
+	/**/
+
+	/**
+     * @param string
+     * @param settingObject
+     * @param args
+     */
+    //private static <T> T initClass(String prefix, Class<T> settingClass, T settingObject, String[] args)
+    private static <T> T initClass(Class<? extends Object> settingClass, T settingObject, String[] args)
+    	throws Set4JException
+    {
+    	String prefix = "";
+		T instance = settingObject;
+		ClassHandler handler = new ClassHandler(prefix, settingClass);
+		
+		if (instance == null)
+		{
+			instance = (T)handler.createInstance();
+		}
+		
+		// 1. set defaults
+		handler.defaults(instance);
+		
+		// 2. delayed evaluation
+		handler.delayedEval();
+    	
+    	/*
+			List<AttrWrapper> itemList = new ArrayList<AttrWrapper>();
+			
+			// TODO if init class je proxy, tak skip this
+			itemList.addAll(getCfgMethodItems(settingClass));
+			itemList.addAll(getCfgFieldItems(settingClass));
+		    
+			if (itemList.size() == 0) throw new Set4JException("Class without any provided annotation");
+			
+			// order 1 - defaults from ann
+			for (AttrWrapper aw : itemList)
+			{
+				//Props props = null;
+				TreeSet<Set4Property> t = new TreeSet<Set4Property>(new PropComp());
+				
+				if (aw.isAnnotationPresent(Set4Module.class))
+				{
+					// TODO skip for now
+					// recursive call with prefix this name
+					//initClass()
+					throw new Set4JException("unimplemented");
+				}
+				
+				if (aw.isAnnotationPresent(Props.class))
+				{
+					for (Set4Property p : aw.getAnnotation(Props.class).value())
+						t.add( p );
+				} else
+				{
+					if (aw.isAnnotationPresent(Set4Property.class))
+					{
+						t.add( aw.getAnnotation(Set4Property.class));
+					}
+				}
+				
+				// try to evaluate one by one
+				String value = null;
+				for (Set4Property p : t)
+				{
+					When when[] = p.when();
+					if (when[0].what().length() == 0)
+					{
+						// direct value
+						value = p.value();
+					} else
+					{
+						//test conditions
+					}
+				}
+				if (value == null)
+					throw new Set4JException("No default value found!");
+				// HERE FIXME TODO HERE !!!
+				// TODO store for post processing if needed
+			}
+			// TODO here below
+			
+			// cpy
+			//Field aFieldArr[] = getFields(settingObject.getClass());
+			
+			//
+			// TODO dynamic order?
+			//
+		*/
+			// order 2 - SysProps
+			// order 3 - CmdLine
+			// order 4 - DB
+		return instance;
+    }
+
+	public static Field[] getFields(@SuppressWarnings("rawtypes") Class cls)
+	{
+		ArrayList<Field> aFields = new ArrayList<Field>();
+		if (cls != null && cls != Object.class)
+		{
+			for (Field fld : cls.getDeclaredFields())
+			{
+				aFields.add(fld);
+			}
+			if (mTraceSuperClass)
+				for (Field fld : getFields(cls.getSuperclass()))
+				{
+					aFields.add(fld);
+				}
+		}
+		Field ret[] = new Field[aFields.size()];
+		return aFields.toArray(ret);
+	}
+    
+}

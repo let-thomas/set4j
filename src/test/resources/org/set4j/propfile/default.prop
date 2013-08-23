@@ -1,0 +1,4 @@
+#defaults
+a.viewName=roger
+printingServer=svr1
+a.enabled=false

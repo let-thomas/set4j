@@ -1,0 +1,481 @@
+package org.set4j.impl;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TreeSet;
+
+import org.set4j.Initializer;
+import org.set4j.Set4Class;
+import org.set4j.Set4Args;
+import org.set4j.Set4Values;
+import org.set4j.Set4JException;
+import org.set4j.Set4Module;
+import org.set4j.Set4Value;
+import org.set4j.Set4Register;
+import org.set4j.When;
+
+/**
+ * @author Tomas Mikenda
+ *
+ */
+public class ClassHandler implements InvocationHandler
+{
+	private Class<?> mSourceClass = null;
+	private String mParentName = null; 
+	private AttrWrapper mAW = null;
+	HashMap<String, Object> mVals = new HashMap<String, Object>();
+	HashMap<String, ClassHandler> mModules = new HashMap<String, ClassHandler>();
+	HashMap<AttrWrapper, TreeSet<Set4Value>> mDelayedEval = new HashMap<AttrWrapper, TreeSet<Set4Value>>();
+	
+	private static HashMap<String, AttrWrapper>mAllPropsRegistry = new HashMap<String, AttrWrapper>();
+	
+	public ClassHandler(String parentName, Class<?> aClass)
+	{
+		// TODO sanity check
+		mParentName = parentName;
+		mSourceClass = aClass;
+	}
+	
+	
+	private ClassHandler(String parentName, AttrWrapper aW)
+    {
+		// TODO sanity check
+		mParentName = parentName;
+	    mAW = aW;
+	    mSourceClass = mAW.getType();
+    }
+
+
+	public void defaults(Object instance)
+	{
+		List<AttrWrapper> itemList = new ArrayList<AttrWrapper>();
+		itemList.addAll(ClassHandler.getCfgMethodItems(mSourceClass));
+		itemList.addAll(ClassHandler.getCfgFieldItems(mSourceClass));
+		if (itemList.size() == 0) throw new Set4JException("Class without any provided annotation");
+		
+		for (AttrWrapper aw : itemList)
+		{
+			//Props props = null;
+			TreeSet<Set4Value> t = new TreeSet<Set4Value>(new PropComp());
+			
+			String name = null;	// name for registry/parent
+			if (mParentName.length() == 0)
+				name = aw.getStrippedName();
+			else
+				name = mParentName + "." + aw.getStrippedName();
+			if (aw.isAnnotationPresent(Set4Module.class))
+			{
+				//mModules.put(aw.getStrippedName(), new ClassHandler(name, aw.getType())); 
+				mModules.put(aw.getName(), new ClassHandler(name, aw));
+				
+				continue;
+			}
+			
+			mAllPropsRegistry.put(name, aw);
+			aw.setInstance(instance);
+			
+			if (aw.isAnnotationPresent(Set4Register.class))
+			{
+				continue; // is in registry already (above code)
+			}
+			
+			if (aw.isAnnotationPresent(Set4Values.class))
+			{
+				for (Set4Value p : aw.getAnnotation(Set4Values.class).value())
+					t.add( p );
+			} else
+			{
+				if (aw.isAnnotationPresent(Set4Value.class))
+				{
+					t.add( aw.getAnnotation(Set4Value.class));
+				}
+			}
+			
+			// try to evaluate one by one
+			setValueFromAnn(aw, t);
+			/*
+			String strVal = null;
+			for (Set4Property p : t)
+			{
+				When when[] = p.when();
+				if (when[0].what().length() == 0)
+				{
+					// direct value
+					strVal = p.value();
+				} else
+				{
+					// TODO HERE postpone if some condition is not evaluable
+					
+					// is/are names in registry already?
+					for (int i = 0; i < when.length; i++)
+					{
+						String key = when[i].what();
+						if (mAllPropsRegistry.containsKey(key))
+						{
+					// test conditions
+					// postpone processing
+					// mDelayedEval.put(aw, t);
+						} else
+						{
+							
+						}
+					}
+					throw new Set4JException("Unimplemented!");
+					
+				}
+			}
+			if (strVal == null)
+				throw new Set4JException("No default value found!");
+			// HERE FIXME TODO HERE !!!
+			// TODO store for post processing if needed
+			// ?????
+			// order 2 - SysProps
+			// order 3 - CmdLine
+			// order 4 - DB
+
+			// ?????
+			//cast to target type
+			if (Proxy.class.isAssignableFrom(instance.getClass()))
+			{
+				// for proxy calls
+				mVals.put(aw.getName(), aw.convertString2Type(strVal)); 
+			} else
+			{
+				// store into object
+				aw.setValue(strVal);
+			}
+			*/
+		}
+		
+		// now process modules
+		// check or instance sub nodes
+		for (String name : mModules.keySet())
+		{
+			ClassHandler han = mModules.get(name);
+			Object mod = null;
+			if (Proxy.class == instance.getClass() || Proxy.class.isAssignableFrom(instance.getClass()))
+			{
+				mod = Proxy.newProxyInstance(han.getSourceClass().getClassLoader(),
+	                     new Class[] { han.getSourceClass() },
+	                     han);
+				mVals.put(name, mod);
+			} else
+			{
+				// it is "original class"
+				// is sub-node instantiated?
+				han.mAW.setInstance(instance);
+				mod = han.mAW.getValue();
+				if (mod == null)
+				{
+					// create instance
+					mod = han.createInstance();
+					han.mAW.setValue(mod);
+				} else
+				{
+					// any?
+					//throw new Set4JException("Unimplemented!");
+				}
+			} // if proxy else 
+			han.defaults(mod);
+		}
+	}
+
+	/**
+     * @param instance
+     * @param t
+     */
+    private void setValueFromAnn(AttrWrapper aw, TreeSet<Set4Value> t)
+    {
+		String strVal = null;
+		Set4Value usedProp = null;
+		int usedLevel = -1;
+		String sysPropName = aw.getName();
+		
+		//
+		// order 1 - value from annotations
+		//
+		for (Set4Value p : t)
+		{
+			When when[] = p.when();
+			if (when[0].what().length() == 0)
+			{
+				// direct value
+				strVal = p.value();
+				if (usedLevel == 0)
+					throw new Set4JException("Ambiguous conditions, " +p+ " and " + usedProp);
+				usedProp = p;
+				usedLevel = 0;
+				if (p.sysProp().length() > 0)
+				{
+					sysPropName = p.sysProp();
+				}
+			} else
+			{
+				
+				for (int i = 0; i < when.length; i++)
+				{
+					String key = when[i].what();
+					// is name in registry already?
+					if (mAllPropsRegistry.containsKey(key))
+					{
+						AttrWrapper attrValue = mAllPropsRegistry.get(key);
+						Object testValue = attrValue.getValue();
+						// test conditions
+						boolean test = false;
+						if (testValue !=null)
+						{
+							if (when[i].eq().length() > 0)
+							{
+								test = testValue.equals(when[i].eq());
+							} else
+							if (when[i].ne().length() > 0)
+							{
+								test = ! testValue.equals(when[i].eq());
+							} else
+							{
+								throw new Set4JException("Unimplemented!");
+							}
+						}
+						if (test)
+						{
+							strVal = p.value();
+							if (p.when().length == usedLevel)
+								throw new Set4JException("Ambiguous conditions, " +p+ " and " + usedProp);
+							usedLevel = p.when().length;
+							usedProp = p;
+							if (p.sysProp().length() > 0)
+							{
+								sysPropName = p.sysProp();
+							}
+						}
+					} else
+					{
+						mDelayedEval.put(aw, t);
+						return;
+					}
+				}
+				/**/
+				//throw new Set4JException("Unimplemented!");
+				
+			}
+		}
+
+		// TODO store for post processing if needed
+		
+		//
+		// order 2 - from property file
+		//
+		
+		
+		//
+		// order 3 - SysProps
+		//
+		strVal = System.getProperty(sysPropName, strVal);
+		
+		// order 4 - CmdLine
+		// order 5 - DB
+
+		if (strVal == null)
+			throw new Set4JException("No default value found!");
+
+		// ?????
+		//cast to target type
+		if (Proxy.class.isAssignableFrom(aw.getInstance().getClass()))
+		{
+			// for proxy calls
+			mVals.put(aw.getName(), aw.convertString2Type(strVal)); 
+		} else
+		{
+			// store into object
+			aw.setValue(strVal);
+		}
+	    
+    }
+
+
+	/* (non-Javadoc)
+	 * @see java.lang.reflect.InvocationHandler#invoke(java.lang.Object, java.lang.reflect.Method, java.lang.Object[])
+	 */
+	public Object invoke(Object arg0, Method arg1, Object[] arg2) throws Throwable
+	{
+		// TODO is initialized?
+		// TODO is set?
+		// TODO check args
+		Object val = mVals.get(arg1.getName());
+		return val;
+	}
+
+	public HashMap<String, ClassHandler> getModules()
+    {
+    	return mModules;
+    }
+
+	public Class<?> getSourceClass()
+    {
+    	return mSourceClass;
+    }
+
+
+	/**
+     * @return
+     */
+    public Object createInstance()
+    {
+    	Object instance;
+	    // is it class or abstract class or interface?
+		if (mSourceClass.isInterface() || Modifier.isAbstract ( mSourceClass.getModifiers()))
+		{
+			
+			instance = Proxy.newProxyInstance(mSourceClass.getClassLoader(),
+                     new Class[] { mSourceClass },
+                     this);
+			
+		} else // is class
+		{
+			try
+            {
+	            instance = mSourceClass.newInstance();
+            } catch (Exception e)
+            {
+            	if (mSourceClass.getName().contains("$"))
+            		throw new Set4JException("Error instantiate inner class " + mSourceClass.getName(), e);
+            	else
+            		throw new Set4JException("Error instancing class " + mSourceClass.getName() + "; inner class?", e);
+            }
+		}
+		return instance;
+    }
+
+
+	/**
+     * @return
+     */
+    public static Collection<? extends AttrWrapper> getCfgMethodItems(Class<?> settingClass)
+    {
+    	List<AttrWrapper> list = new ArrayList<AttrWrapper>();
+    	for (Method m : settingClass.getMethods())
+    	{
+    		if (m.isAnnotationPresent(Set4Value.class) 
+    				|| m.isAnnotationPresent(Set4Values.class) 
+    				|| m.isAnnotationPresent(Set4Args.class)
+    				|| m.isAnnotationPresent(Set4Module.class)
+    				|| m.isAnnotationPresent(Set4Register.class)
+    				)
+    		{
+        		AttrWrapper aw = new AttrWrapper(m);
+        		list.add(aw);
+    		}
+    	}
+        return list;
+    }
+
+
+	/**
+     * @param settingClass
+     * @return
+     */
+    public static Collection<? extends AttrWrapper> getCfgFieldItems(Class<?> settingClass)
+    {
+    	List<AttrWrapper> list = new ArrayList<AttrWrapper>();
+    	/*int fprefixLen = 0;
+    	if (settingClass.isAnnotationPresent(Set4Class.class))
+    	{
+    		Set4Class sc = settingClass.getAnnotation(Set4Class.class);
+    		fprefixLen = sc.fieldPrefix().length();
+    	}*/
+    	for (Field f: Initializer.getFields(settingClass))
+    	{
+    		if (f.isAnnotationPresent(Set4Value.class) 
+    				|| f.isAnnotationPresent(Set4Values.class) 
+    				|| f.isAnnotationPresent(Set4Args.class)
+    				|| f.isAnnotationPresent(Set4Module.class)
+    				|| f.isAnnotationPresent(Set4Register.class)
+    				)
+    		{
+        		AttrWrapper aw = new AttrWrapper(f);
+        		list.add(aw);
+    		}
+    	}
+        return list;
+    }
+
+
+	/**
+     * 
+     */
+    public void delayedEval()
+    {
+	    // grab all postponed init
+    	grabAllDelayed();
+    	
+    	int size = mDelayedEval.size();
+    	while (!mDelayedEval.isEmpty())
+    	{
+    		for (AttrWrapper aw : mDelayedEval.keySet())
+    		{
+    			TreeSet<Set4Value> t = mDelayedEval.get(aw);
+    			//???break
+    			/*
+    			boolean haveAll = true;
+    			for (Set4Property p : t)
+    			{
+    				When when[] = p.when();
+					// is/are names in registry already?
+					for (int i = 0; i < when.length; i++)
+					{
+						String key = when[i].what();
+						 
+						if (! mAllPropsRegistry.containsKey(key))
+						{
+							haveAll = false;
+							break;
+						}
+					}
+					if (!haveAll) break;
+    			}
+    			if (!haveAll) continue;
+    			
+    			// do evaluate
+    			 * 
+    			 */
+    			setValueFromAnn(aw, t);
+    			
+    		}
+    		
+    		// fail if no change
+    		if (size == mDelayedEval.size())
+    		{
+    			StringBuffer buf = new StringBuffer();
+    			for (AttrWrapper aw : mDelayedEval.keySet())
+        		{
+    				buf.append( aw.getName() ).append(',');
+        		}
+    			throw new Set4JException("Evaluation not possible (undefined value) or Conditions evaluation deadlock! list not set:" + buf.toString());
+    		}
+    		size = mDelayedEval.size();
+    			
+    	}
+    	
+    	//HashMap<AttrWrapper, TreeSet<Set4Property>> all = new HashMap<AttrWrapper, TreeSet<Set4Property>>();
+    	
+	    
+    }
+    
+    private HashMap<AttrWrapper, TreeSet<Set4Value>> grabAllDelayed()
+    {
+		for (String name : mModules.keySet())
+		{
+			ClassHandler han = mModules.get(name);
+			mDelayedEval.putAll(han.grabAllDelayed());
+		}
+		return mDelayedEval;
+    }
+
+}
