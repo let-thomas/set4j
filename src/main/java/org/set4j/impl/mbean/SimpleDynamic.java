@@ -235,7 +235,7 @@ public class SimpleDynamic implements javax.management.DynamicMBean
 	@Override
 	public AttributeList setAttributes(AttributeList attributes)
 	{
-		// Check attributesto avoid NullPointerException later on
+		// Check attributes to avoid NullPointerException later on
 	    if (attributes == null) {
 	        throw new RuntimeOperationsException(
 	            new IllegalArgumentException(

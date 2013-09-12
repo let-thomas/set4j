@@ -57,7 +57,7 @@ public class CacheMBean implements javax.management.DynamicMBean
 	private MBeanAttributeInfo[] dAttributes = new MBeanAttributeInfo[2];
 	private MBeanConstructorInfo[] mConstructors = null; //new MBeanConstructorInfo[1];
 	private MBeanOperationInfo[] dOperations = new MBeanOperationInfo[1];
-	private MBeanInfo dMBeanInfo = null;
+	private MBeanInfo mMBeanInfo = null;
 
 	// internal method
 	private void buildDynamicMBeanInfo() {
@@ -67,8 +67,8 @@ public class CacheMBean implements javax.management.DynamicMBean
 	        "java.lang.String",      // type
 	        "State: state string.",  // description
 	        true,                    // readable
-	        true,
-	        false);                   // writable
+	        true,                    // writable
+	        false);
 	    dAttributes[1] = new MBeanAttributeInfo(
 	        "resets",
 	        "java.lang.Integer",
@@ -86,7 +86,7 @@ public class CacheMBean implements javax.management.DynamicMBean
 	        "void",                      // return type
 	        MBeanOperationInfo.ACTION);  // impact
 
-	    dMBeanInfo = new MBeanInfo(thisClassName,
+        mMBeanInfo = new MBeanInfo(thisClassName,
 	                               mDescription,
 	                               dAttributes,
 	                               mConstructors,
@@ -99,7 +99,7 @@ public class CacheMBean implements javax.management.DynamicMBean
 
 	    // return the information we want to expose for management:
 	    // the dMBeanInfo private field has been built at instantiation time,
-	    return(dMBeanInfo);
+	    return mMBeanInfo;
 	}	
 
 	/* (non-Javadoc)

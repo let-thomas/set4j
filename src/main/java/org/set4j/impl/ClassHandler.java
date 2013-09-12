@@ -3,13 +3,11 @@ package org.set4j.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -18,19 +16,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
 
-import javax.management.Attribute;
-import javax.management.AttributeList;
-import javax.management.AttributeNotFoundException;
-import javax.management.DynamicMBean;
-import javax.management.InvalidAttributeValueException;
-import javax.management.MBeanException;
-import javax.management.MBeanInfo;
-import javax.management.MBeanServer;
-import javax.management.MBeanServerFactory;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectInstance;
-import javax.management.ObjectName;
-import javax.management.ReflectionException;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -40,6 +25,7 @@ import org.set4j.Set4Check;
 import org.set4j.Set4Class;
 import org.set4j.Set4JChecker;
 import org.set4j.Set4JException;
+import org.set4j.Set4MBean;
 import org.set4j.Set4Module;
 import org.set4j.Set4Nullable;
 import org.set4j.Set4PropFile;
@@ -55,12 +41,14 @@ import org.set4j.impl.mbean.BeanExploder;
  * @author Tomas Mikenda
  *
  */
-public class ClassHandler implements InvocationHandler, DynamicMBean
+public class ClassHandler implements InvocationHandler
 {
 	private Class<?> mSourceClass = null;
 	private String mParentName = null; 
 	private AttrWrapper mAW = null;
+    /** values map */
 	HashMap<String, Object> mVals = new HashMap<String, Object>();
+    /** submodules map */
 	HashMap<String, ClassHandler> mModules = new HashMap<String, ClassHandler>();
 	//!	HashMap<AttrWrapper, TreeSet<Set4Value>> mDelayedEval = new HashMap<AttrWrapper, TreeSet<Set4Value>>();
 	
@@ -902,10 +890,11 @@ public class ClassHandler implements InvocationHandler, DynamicMBean
     				String fileName = substVars(root + fname, null);
     				InputStream io = getResourceStream(fileName);
     				pff[idx] = new Properties();
-    				if (io == null) System.err.println("set4j: Cannot locate resource " + fname + " -> " + fileName);
+    				if (io == null) Log.error("set4j: Cannot locate resource " + fname + " -> " + fileName);
                     else
 	                    try
                         {
+                            Log.info("loading resource " + fname + " -> " + fileName);
 	                    	pff[idx].load(io);
                         } catch (IOException e)
                         {
@@ -1115,103 +1104,49 @@ public class ClassHandler implements InvocationHandler, DynamicMBean
 		}
 	}
 
-	//
-	// MBean stuff
-	// ===========
-	//
-
 	/**
-     * 
+     * registering MBean.
      */
     public void registerMBean()
     {
-    	/*
-    	String namePrefix = "set4j:";
-    	MBeanServer beanServer = MBeanServerFactory.newMBeanServer();
-    	try
+        Set4MBean mbAnn = getClassAnnotation(Set4MBean.class);
+        //Set4PropFile pfp = mSourceClass.getAnnotation(Set4PropFile.class);
+        //if (isClassAnnotationPresent(Set4PropFile.class))
+        if (mbAnn == null) return;
+
+        try
         {
-	        ObjectName beanName = new ObjectName(namePrefix + "node=main");
-	        ObjectInstance oi = beanServer.createMBean(this.getClass().getName(), beanName);
+            new BeanExploder().createBeans(this);
         } catch (Exception e)
         {
-        	throw new Set4JException(e);
+            Log.info("MBean initialization failed!", e);
+            if (Log.isDebug())
+            {
+                e.printStackTrace();
+            }
+            if (mbAnn.errorOnFail())
+            {
+                throw new Set4JException("Registering MBean failed!", e);
+            }
         }
-		*/
-    	new BeanExploder().createBeans(this);
     }
 
-    public ClassHandler()
-    {
-    	// for MBean
-    }
-
-	/* (non-Javadoc)
-     * @see javax.management.DynamicMBean#getAttribute(java.lang.String)
+    /**
+     * for internal use only!
+     * @return
      */
-    @Override
-    public Object getAttribute(String arg0) throws AttributeNotFoundException, MBeanException, ReflectionException
+    public static Map<String, AttrWrapper> getRegistry()
     {
-	    // TODO Auto-generated method stub
-	    return null;
+        return mAllPropsRegistry;
     }
 
-
-	/* (non-Javadoc)
-     * @see javax.management.DynamicMBean#getAttributes(java.lang.String[])
-     */
-    @Override
-    public AttributeList getAttributes(String[] arg0)
+    public void enableOverride()
     {
-	    // TODO Auto-generated method stub
-	    return null;
+        for (Object key: mAllPropsRegistry.keySet())
+        {
+            AttrWrapper aw = mAllPropsRegistry.get(key);
+            if (aw == null) continue; // or report problem?
+            aw.enableOverride();
+        }
     }
-
-
-	/* (non-Javadoc)
-     * @see javax.management.DynamicMBean#getMBeanInfo()
-     */
-    @Override
-    public MBeanInfo getMBeanInfo()
-    {
-	    // TODO Auto-generated method stub
-    	MBeanInfo info = new MBeanInfo(null, null, null, null, null, null);
-	    return info;
-    }
-
-
-	/* (non-Javadoc)
-     * @see javax.management.DynamicMBean#invoke(java.lang.String, java.lang.Object[], java.lang.String[])
-     */
-    @Override
-    public Object invoke(String arg0, Object[] arg1, String[] arg2) throws MBeanException, ReflectionException
-    {
-	    // TODO Auto-generated method stub
-	    return null;
-    }
-
-
-	/* (non-Javadoc)
-     * @see javax.management.DynamicMBean#setAttribute(javax.management.Attribute)
-     */
-    @Override
-    public void setAttribute(Attribute arg0) throws AttributeNotFoundException, InvalidAttributeValueException,
-            MBeanException, ReflectionException
-    {
-	    // TODO Auto-generated method stub
-	    
-    }
-
-
-	/* (non-Javadoc)
-     * @see javax.management.DynamicMBean#setAttributes(javax.management.AttributeList)
-     */
-    @Override
-    public AttributeList setAttributes(AttributeList arg0)
-    {
-	    // TODO Auto-generated method stub
-	    return null;
-    }
-
-
-
 }

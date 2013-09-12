@@ -12,7 +12,7 @@ public class TestIfaceIns
 	public static interface TestIf
 	{
 		@Set4Values({
-			@Set4Value(value = "main"),
+			@Set4Value(value = "main")
 		})
 		String getEnv();
 		

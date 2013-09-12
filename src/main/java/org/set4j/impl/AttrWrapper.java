@@ -365,7 +365,7 @@ public class AttrWrapper
     }
 
 	/**
-         * @param instance
+         * @param aw
          * @param t
          */
         private void setValueFromAnn(AttrWrapper aw, TreeSet<Set4Value> t)
@@ -528,6 +528,11 @@ public class AttrWrapper
     	mFixed = true;
     }
 
-	
-	
+    public void enableOverride()
+    {
+        mFixed = false;
+    }
+
+
+
 }

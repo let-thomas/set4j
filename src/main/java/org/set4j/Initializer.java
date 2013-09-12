@@ -19,9 +19,7 @@ import org.set4j.impl.ClassHandler;
 public class Initializer
 {
 	private static boolean mTraceSuperClass = true;
-	public enum LogLevel { DEBUG, INFO, ERROR };
-	protected static LogLevel logLevel = LogLevel.INFO;  
-	
+
 	public static <T> T init(T settingObject) throws Set4JException
 	{
 		return initClass(settingObject.getClass(), settingObject, null, null);
@@ -50,9 +48,10 @@ public class Initializer
 
 
 	/**
-     * @param string
+     * @param settingClass
      * @param settingObject
      * @param args
+     * @param overrides
      */
     //private static <T> T initClass(String prefix, Class<T> settingClass, T settingObject, String[] args)
     @SuppressWarnings("unchecked")
@@ -114,6 +113,8 @@ public class Initializer
 		// TODO: allow again setting values?
 		// for mbean?
 		handler.registerMBean();
+
+        handler.enableOverride();
 		
 		return instance;
     }

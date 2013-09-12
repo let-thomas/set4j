@@ -1,5 +1,6 @@
 package org.set4j.vals;
 
+import org.set4j.Set4MBean;
 import org.set4j.Set4Module;
 import org.set4j.Set4PropFile;
 import org.set4j.Set4Value;
@@ -10,6 +11,7 @@ import org.set4j.impl.LocationType;
  *
  */
 @Set4PropFile(type= LocationType.resource, location="org/set4j/vals", files={"${run}.prop"})
+@Set4MBean
 public interface Setting
 {
 	@Set4Value(value="http://${server.server}:${server.port}")

@@ -24,7 +24,13 @@ public class Main
         ObjectName name = new ObjectName("com.example:type=Hello"); 
         Hello mbean = new Hello(); 
         mbs.registerMBean(mbean, name); 
-          
+        name = new ObjectName("com.example:name=Hellon, klic=hodnota");
+        mbean = new Hello();
+        mbs.registerMBean(mbean, name);
+        name = new ObjectName("com.example:name=Hello,type=helot");
+        mbean = new Hello();
+        mbs.registerMBean(mbean, name);
+
         /*
         Setting s = Initializer.init(Setting.class);
         name = new ObjectName("com.example:type=Setting");
@@ -34,9 +40,11 @@ public class Main
         name = new ObjectName("com.example:type=Simple");
         mbs.registerMBean(new SimpleDynamic(), name);
         
-        name = new ObjectName("com.example:type=Bla-cache");
+        name = new ObjectName("com.example:name=in1,type=In");
         mbs.registerMBean(new CacheMBean(new Cache(), "reload", "blabla cache"), name);
-     
+        name = new ObjectName("com.example:name=inn,type=In.cache");
+        mbs.registerMBean(new CacheMBean(new Cache(), "reload", "inner cache"), name);
+
         System.out.println("Waiting forever...");
         
         Thread.sleep(Long.MAX_VALUE);

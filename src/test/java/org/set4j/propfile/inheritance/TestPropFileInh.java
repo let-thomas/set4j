@@ -15,11 +15,13 @@ import org.set4j.propfile.TestPropFile;
  */
 public class TestPropFileInh extends TestPropFile
 {
+    /*
 	@Before
 	public void before()
 	{
 		configClass = MainChild.class;
 	}
+    */
 	
 	@Test
 	public void test()

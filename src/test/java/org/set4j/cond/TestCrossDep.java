@@ -28,7 +28,7 @@ public class TestCrossDep
 		@Set4Values ({
 			@Set4Value(value="svr1", when=@When(what="b.custName", eq="default")),
 			@Set4Value(value="svr2", when=@When(what="b.custName", eq="ACME")),
-			@Set4Value(value="svr3", when=@When(what="b.custName", eq="BOOT &co")),
+			@Set4Value(value="svr3", when=@When(what="b.custName", eq="BOOT &co"))
 		})
 		String server;
 		
@@ -41,7 +41,7 @@ public class TestCrossDep
 		@Set4Values ({
 			@Set4Value(value="default"),
 			@Set4Value(value="ACME", when=@When(what="name", eq="cust1")),
-			@Set4Value(value="BOOT &co", when=@When(what="name", eq="cust2")),
+			@Set4Value(value="BOOT &co", when=@When(what="name", eq="cust2"))
 		})
 		String custName;
 		

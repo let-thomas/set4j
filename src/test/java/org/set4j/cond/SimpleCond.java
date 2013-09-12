@@ -21,7 +21,7 @@ public class SimpleCond
 		@Set4Values ({
 			@Set4Value(value="default"),
 			@Set4Value(value="ACME", when=@When(what="name", eq="cust1")),
-			@Set4Value(value="BOOT &co", when=@When(what="name", eq="cust2")),
+			@Set4Value(value="BOOT &co", when=@When(what="name", eq="cust2"))
 		})
 		String custName;
 		

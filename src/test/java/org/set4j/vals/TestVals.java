@@ -34,4 +34,12 @@ public class TestVals
 		assertEquals(112299, s.server().port());
 		assertEquals("http://acme.com:112299", s.url());
 	}
+
+    public static void main(String args[]) throws InterruptedException
+    {
+        System.setProperty("set4j.loglevel", "debug");
+        new TestVals().testRun2();
+        Thread.sleep(Long.MAX_VALUE);
+    }
+
 }

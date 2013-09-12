@@ -14,7 +14,7 @@ import org.set4j.Initializer;
  */
 public class TestPropFile
 {
-	protected Class configClass = null;
+	protected Class<MainS> configClass = null;
 	
 	@Before
 	public void before()
