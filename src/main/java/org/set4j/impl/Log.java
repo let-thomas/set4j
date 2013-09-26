@@ -81,5 +81,6 @@ public class Log
         buf.append(msg);
         System.out.println(buf.toString());
         //stack
+        if (t != null) t.printStackTrace();
     }
 }
