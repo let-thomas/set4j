@@ -3,14 +3,47 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.set4j</groupId>
     <artifactId>set4j</artifactId>
-    <version>1.2.4</version>
-    <name>Properties setting framework</name>
+    <version>1.4.0</version>
+    <name>set4j: Properties setting framework</name>
     <description>Annotated Configuration Setting Framework</description>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>tomik</id>
+            <name>ToMik</name>
+            <email>tomikovo@centrum.cz</email>
+        </developer>
+    </developers>
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.8.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>3.0.5.RELEASE</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>3.0.5.RELEASE</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>3.0.5.RELEASE</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

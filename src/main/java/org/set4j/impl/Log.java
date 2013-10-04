@@ -43,7 +43,7 @@ public class Log
         }
     }
 
-    static void info(String msg)
+    public static void info(String msg)
     {
         if (logLevel != LogLevel.ERROR)
         {

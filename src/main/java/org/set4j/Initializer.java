@@ -2,15 +2,9 @@ package org.set4j;
 
 import org.set4j.impl.ClassHandler;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
-
-//import com.tieto.setting.Setting;
-//import com.tieto.setting.SysProp;
-import org.set4j.impl.ClassHandler;
 
 /**
  * @author Tomas Mikenda
@@ -18,16 +12,37 @@ import org.set4j.impl.ClassHandler;
  */
 public class Initializer
 {
-	private static boolean mTraceSuperClass = true;
+    private static boolean mTraceSuperClass = true;
+    public static HashMap<Class, Object> AllConfigs = new HashMap<Class, Object>();
 
-	public static <T> T init(T settingObject) throws Set4JException
-	{
-		return initClass(settingObject.getClass(), settingObject, null, null);
-	}
-	
-	public static <T> T init(Class<T> settingClass) throws Set4JException
+    /**
+     * Returns initialized instance of <i>settingClass</i> type (or its ancestors) if exists.
+     * Throws exception otherwise.
+     * @param settingClass
+     * @param <T>
+     * @return Instance of T class.
+     */
+    public static <T> T getInstance(Class<T> settingClass) throws Set4JException
     {
-		return initClass(settingClass, null, null, null);
+        //go through the map and try to find if any class is fitting to search class type
+        for (Class cls : AllConfigs.keySet())
+        {
+            if (settingClass.isAssignableFrom(cls))
+            {
+                return (T) cls;
+            }
+        }
+        throw new Set4JException("Cannot find class type");
+    }
+
+    public static <T> T init(T settingObject) throws Set4JException
+    {
+        return initClass(settingObject.getClass(), settingObject, null, null);
+    }
+
+    public static <T> T init(Class<T> settingClass) throws Set4JException
+    {
+        return initClass(settingClass, null, null, null);
     }
 
 	/**
@@ -60,13 +75,15 @@ public class Initializer
     {
     	String prefix = "";
 		T instance = settingObject;
-		ClassHandler handler = new ClassHandler(prefix, settingClass);
-		handler.clearRegistry(); // !!! FIXME TODO - this implies having only one registry !!!
+		ClassHandler handler = new ClassHandler(prefix, settingClass, true);
+		//handler.clearRegistry(); // !!! FIXME TODO - this implies having only one registry !!!
 		
 		if (instance == null)
 		{
 			instance = (T)handler.createInstance();
 		}
+        AllConfigs.put(settingClass, instance);
+
 		//System.out.println("init: " + settingClass.getName() + "; inst: " + instance + "; handler" + handler);
 		/*
 		// TODO journal (i.e. value history)

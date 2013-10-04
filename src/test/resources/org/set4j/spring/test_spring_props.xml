@@ -1,0 +1,20 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean class="org.set4j.SpringPropertyResolver">
+        <property name="configClass">
+            <value>org.set4j.propfile.TestPropFile</value>
+        </property>
+    </bean>
+
+    <bean id="propagation" class="org.set4j.spring.PropagationBean">
+        <property name="customer" value="${customer}" />
+        <property name="environment" value="${env}" />
+        <property name="enabled" value="${a.enabled}" />
+        <property name="freq" value="${a.subA.updateFreq}" />
+    </bean>
+
+
+</beans>

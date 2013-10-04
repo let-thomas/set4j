@@ -9,7 +9,6 @@ import java.util.HashMap;
 
 /**
  * @author mikentom
- * @date 17.4.2006
  */
 public class CmdLine extends Initializer
 {

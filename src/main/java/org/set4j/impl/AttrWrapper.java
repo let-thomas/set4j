@@ -99,7 +99,7 @@ public class AttrWrapper
 
 
 	/**
-     * @param class1
+     * @param aClass
      * @return
      */
     public boolean isAnnotationPresent(Class<? extends Annotation> aClass)
@@ -110,7 +110,7 @@ public class AttrWrapper
 
 
 	/**
-     * @param class1
+     * @param aClass
      * @return
      */
     public <T extends Annotation>T getAnnotation(Class<T> aClass)
@@ -491,7 +491,7 @@ public class AttrWrapper
     			} 
     			catch (Set4JException e)
     			{
-    				// well this is actually bad, not sure about all possibilites, one is comming from TestBasics test.
+    				// well this is actually bad, not sure about all possibilities, one is coming from TestBasics test.
     				aw.setValue( strVal ); // or bind?
     			}
     		} else

@@ -53,9 +53,10 @@ public class ClassHandler implements InvocationHandler
 	//!	HashMap<AttrWrapper, TreeSet<Set4Value>> mDelayedEval = new HashMap<AttrWrapper, TreeSet<Set4Value>>();
 	
 	protected static HashMap<String, AttrWrapper>mAllPropsRegistry = new HashMap<String, AttrWrapper>(); // FIXME TODO static?!
+
 	private static ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
 	
-	public ClassHandler(String parentName, Class<?> aClass)
+	public ClassHandler(String parentName, Class<?> aClass, boolean rootClass)
 	{
 		// TODO sanity check
 		mParentName = parentName;
@@ -68,6 +69,11 @@ public class ClassHandler implements InvocationHandler
 			throw new Set4JException("unhandled!");
 		}
 		*/
+        if (rootClass)
+        {
+            //		mAllPropsRegistry.clear();
+            mAllPropsRegistry = new HashMap<String, AttrWrapper>();
+        }
 	}
 	
 	
@@ -221,86 +227,6 @@ public class ClassHandler implements InvocationHandler
 			mAllPropsRegistry.put(name, aw);
 			aw.setInstance(instance);
 			aw.setValueFromAnn();
-			/*
-			if (aw.isAnnotationPresent(Set4Register.class))
-			{
-				continue; // is in registry already (above code)
-			}
-			
-			if (aw.isAnnotationPresent(Set4Values.class))
-			{
-				for (Set4Value p : aw.getAnnotation(Set4Values.class).value())
-					t.add( p );
-			}
-			if (aw.isAnnotationPresent(Set4Value.class))
-			{
-				t.add( aw.getAnnotation(Set4Value.class));
-			}
-			if (aw.isAnnotationPresent(Set4SysProp.class))
-			{
-                //+Set4Value s4v = (Set4Value) Proxy.newProxyInstance(Set4Value.class.getClassLoader(), new Class[] {Set4Value.class}, new Set4ClassHandler(aw.getAnnotation(Set4SysProp.class)));
-                //s4v.value = null;
-                //+t.add(s4v);
-				Set4SysProp ann = aw.getAnnotation(Set4SysProp.class);
-				aw.setSysPropName(mParentName.length() == 0 ? ann.name() : mParentName + "." + ann.name());
-			}
-			
-			// try to evaluate one by one
-			setValueFromAnn(aw, t);
-			*/
-			
-			/*
-			String strVal = null;
-			for (Set4Property p : t)
-			{
-				When when[] = p.when();
-				if (when[0].what().length() == 0)
-				{
-					// direct value
-					strVal = p.value();
-				} else
-				{
-					// TODO HERE postpone if some condition is not evaluable
-					
-					// is/are names in registry already?
-					for (int i = 0; i < when.length; i++)
-					{
-						String key = when[i].what();
-						if (mAllPropsRegistry.containsKey(key))
-						{
-					// test conditions
-					// postpone processing
-					// mDelayedEval.put(aw, t);
-						} else
-						{
-							
-						}
-					}
-					throw new Set4JException("Unimplemented!");
-					
-				}
-			}
-			if (strVal == null)
-				throw new Set4JException("No default value found!");
-			// HERE FIXME TODO HERE !!!
-			// TODO store for post processing if needed
-			// ?????
-			// order 2 - SysProps
-			// order 3 - CmdLine
-			// order 4 - DB
-
-			// ?????
-			//cast to target type
-			if (Proxy.class.isAssignableFrom(instance.getClass()))
-			{
-				// for proxy calls
-				mVals.put(aw.getName(), aw.convertString2Type(strVal)); 
-			} else
-			{
-				// store into object
-				aw.setValue(strVal);
-			}
-			*/
 		}
 		
 		// now process modules
@@ -339,7 +265,7 @@ public class ClassHandler implements InvocationHandler
 	}
 
 	/**
-     * @param instance
+     * @param aw
      * @param t
      */
     private void setValueFromAnn(AttrWrapper aw, TreeSet<Set4Value> t)
@@ -632,80 +558,7 @@ public class ClassHandler implements InvocationHandler
     }
 
 
-	/**
-     * 
-     *
-    public void delayedEval()
-    {
-	    // grab all postponed init
-    	grabAllDelayed();
-    	
-    	int size = mDelayedEval.size();
-    	while (!mDelayedEval.isEmpty())
-    	{
-    		for (AttrWrapper aw : mDelayedEval.keySet())
-    		{
-    			TreeSet<Set4Value> t = mDelayedEval.remove(aw);
-    			//mDelayedEval.
-    			//???break
-    			/*
-    			boolean haveAll = true;
-    			for (Set4Property p : t)
-    			{
-    				When when[] = p.when();
-					// is/are names in registry already?
-					for (int i = 0; i < when.length; i++)
-					{
-						String key = when[i].what();
-						 
-						if (! mAllPropsRegistry.containsKey(key))
-						{
-							haveAll = false;
-							break;
-						}
-					}
-					if (!haveAll) break;
-    			}
-    			if (!haveAll) continue;
-    			
-    			// do evaluate
-    			 * 
-    			 ** /
-    			aw.getDeclaringHandler().setValueFromAnn(aw, t, aw.isAnnotationPresent(Set4Nullable.class)); 
-    			
-    		}
-    		
-    		// fail if no change
-    		if (size == mDelayedEval.size())
-    		{
-    			StringBuffer buf = new StringBuffer();
-    			for (AttrWrapper aw : mDelayedEval.keySet())
-        		{
-    				buf.append( aw.getName() ).append(',');
-        		}
-    			throw new Set4JException("Evaluation not possible (undefined value) or Conditions evaluation deadlock! list not set:" + buf.toString());
-    		}
-    		size = mDelayedEval.size();
-    			
-    	}
-    	
-    	//HashMap<AttrWrapper, TreeSet<Set4Property>> all = new HashMap<AttrWrapper, TreeSet<Set4Property>>();
-    	
-	    
-    }
-    
-    private HashMap<AttrWrapper, TreeSet<Set4Value>> grabAllDelayed()
-    {
-		for (String name : mModules.keySet())
-		{
-			ClassHandler han = mModules.get(name);
-			mDelayedEval.putAll(han.grabAllDelayed());
-		}
-		return mDelayedEval;
-    }
-    /**/
-    
-	private static boolean mTraceSuperClass = true;
+    private static boolean mTraceSuperClass = true;
 	public static Field[] getFields(@SuppressWarnings("rawtypes") Class cls)
 	{
 		ArrayList<Field> aFields = new ArrayList<Field>();
@@ -752,14 +605,11 @@ public class ClassHandler implements InvocationHandler
 				}
 				if (check.js().length() > 0)
 				{
-					//throw new RuntimeException("ToDo");
 					try
                     {
 	                    engine.eval(check.js());
                     } catch (ScriptException e)
                     {
-	                    // TODO Auto-generated catch block
-	                    //e.printStackTrace();
 	                    throw new Set4JException("Check exception: " + e, e);
                     }
 				}
@@ -768,7 +618,6 @@ public class ClassHandler implements InvocationHandler
 			{
 				if (!aw.isAnnotationPresent(Set4Nullable.class)) throw new Set4JException("No value found for item '" + key + "' !");
 			}
-			//aw.toString();
 		}
 	}
 	
@@ -836,11 +685,14 @@ public class ClassHandler implements InvocationHandler
 		}
 
 	}
-	
+
+
+/*
 	public void clearRegistry()
 	{
 		mAllPropsRegistry.clear();
 	}
+*/
 
 
 	public String getParentName()
@@ -890,11 +742,11 @@ public class ClassHandler implements InvocationHandler
     				String fileName = substVars(root + fname, null);
     				InputStream io = getResourceStream(fileName);
     				pff[idx] = new Properties();
-    				if (io == null) Log.error("set4j: Cannot locate resource " + fname + " -> " + fileName);
+    				if (io == null) Log.error("Cannot locate resource " + fname + " -> " + fileName);
                     else
 	                    try
                         {
-                            Log.info("loading resource " + fname + " -> " + fileName);
+                            Log.info("Loading resource " + fname + " -> " + fileName);
 	                    	pff[idx].load(io);
                         } catch (IOException e)
                         {
@@ -915,7 +767,7 @@ public class ClassHandler implements InvocationHandler
 
 
 	/**
-     * @param class1
+     * @param annClass
      * @return
      */
     private boolean isClassAnnotationPresent(Class<? extends Annotation> annClass)

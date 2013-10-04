@@ -8,13 +8,13 @@ Changelog
 1.2.2 better messages
 1.2.3 propfile from parent (inheritance)
 1.2.4 substVar adding obervers
-
+1.3.0 mbean registration (get/set)
+1.3.1 mbean re-registration fix
+1.4.0 spring support (property resolver) + MBean setAttributes implementation
 
 Roadmap
 =======
-1.3 spring support
-1.4 mbean
 1.5 db (persistent) override
-1.x date-time validity
+1.6 date-time validity
 2.0 @inject possibility
 

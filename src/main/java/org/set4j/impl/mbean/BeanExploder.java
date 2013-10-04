@@ -5,6 +5,7 @@ import org.set4j.impl.ClassHandler;
 import org.set4j.impl.Log;
 
 import javax.management.InstanceAlreadyExistsException;
+import javax.management.InstanceNotFoundException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -25,6 +26,7 @@ public class BeanExploder
 	public void createBeans(ClassHandler handler) throws MalformedObjectNameException, MBeanRegistrationException, InstanceAlreadyExistsException, NotCompliantMBeanException
     {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        Log.info("Registering mBeans - START");
 
         // prepare list of modules and its values
         HashMap<String, List<String>> modules = new HashMap<String, List<String>>();
@@ -48,6 +50,17 @@ public class BeanExploder
             else objName.append("type=").append(rootName).append(",name=").append(moduleName);
             Log.debug("Register mbean - " + objName.toString());
             ObjectName name = new ObjectName(objName.toString());
+            if (mbs.isRegistered(name))
+            {
+                Log.debug("mbean registred, removing");
+                try
+                {
+                    mbs.unregisterMBean(name);
+                } catch (Exception e)
+                {
+                    Log.info("Unregistering fails: " + e);
+                }
+            }
             mbs.registerMBean(new Set4JMBean(handler, moduleName, modules.get(moduleName)), name);
         }
 
@@ -61,6 +74,7 @@ public class BeanExploder
             createBeans(modules.get(modName), parent + modName);
         }
 */
+        Log.info("Registering mBeans - END");
 	}
 
     private String packageName(String name)
