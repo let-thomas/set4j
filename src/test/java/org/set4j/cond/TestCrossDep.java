@@ -2,6 +2,7 @@ package org.set4j.cond;
 
 import junit.framework.Assert;
 
+import org.junit.After;
 import org.junit.Test;
 import org.set4j.Initializer;
 import org.set4j.Set4Module;
@@ -82,5 +83,12 @@ public class TestCrossDep
 		Initializer.init(a);
 		Assert.assertEquals("BOOT &co", a.b.custName);
 		Assert.assertEquals("svr3", a.server);
-	}	
+	}
+
+    @After
+    public void uninit()
+    {
+        Initializer.uninitialize(A.class);
+    }
+
 }

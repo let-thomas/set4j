@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.set4j</groupId>
     <artifactId>set4j</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.1</version>
     <name>set4j: Properties setting framework</name>
     <description>Annotated Configuration Setting Framework</description>
     <licenses>

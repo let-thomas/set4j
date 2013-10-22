@@ -2,6 +2,7 @@ package org.set4j.objects;
 
 import junit.framework.Assert;
 
+import org.junit.After;
 import org.junit.Test;
 import org.set4j.Initializer;
 import org.set4j.Set4Value;
@@ -12,8 +13,6 @@ import org.set4j.Set4Value;
  */
 public class TestModuleTreeMethods
 {
-	
-	
 	/*
 	public class Sub1
 	{
@@ -60,7 +59,6 @@ public class TestModuleTreeMethods
 		Initializer.init(main);
 		Assert.assertEquals("sub1", main.sub1.val);
 		Assert.assertEquals(21, main.sub2.val);
-		
 	}
 
 	@Test
@@ -70,7 +68,11 @@ public class TestModuleTreeMethods
 		Method_Main main = Initializer.init(Method_Main.class);
 		Assert.assertEquals("sub1", main.getSub1().val);
 		Assert.assertEquals(21, main.getSub2().val);
-		
 	}
-	
+
+    @After
+    public void uninit()
+    {
+        Initializer.uninitialize(Method_Main.class);
+    }
 }

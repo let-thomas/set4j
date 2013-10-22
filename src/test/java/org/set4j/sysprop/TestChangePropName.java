@@ -1,5 +1,6 @@
 package org.set4j.sysprop;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.set4j.Initializer;
@@ -35,5 +36,11 @@ public class TestChangePropName
 		Assert.assertEquals(myName, s.customer);
 		System.clearProperty("someOther");
 	}
+
+    @After
+    public void uninit()
+    {
+        Initializer.uninitialize(Setting.class);
+    }
 
 }

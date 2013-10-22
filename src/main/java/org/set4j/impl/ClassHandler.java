@@ -8,12 +8,14 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.TreeSet;
 
 import javax.script.ScriptEngine;
@@ -52,7 +54,9 @@ public class ClassHandler implements InvocationHandler
 	HashMap<String, ClassHandler> mModules = new HashMap<String, ClassHandler>();
 	//!	HashMap<AttrWrapper, TreeSet<Set4Value>> mDelayedEval = new HashMap<AttrWrapper, TreeSet<Set4Value>>();
 	
-	protected static HashMap<String, AttrWrapper>mAllPropsRegistry = new HashMap<String, AttrWrapper>(); // FIXME TODO static?!
+	//protected static
+    private HashMap<String, AttrWrapper>mAllPropsRegistry = new HashMap<String, AttrWrapper>(); // FIXME TODO static?!
+    private ClassHandler rootNode = null;
 
 	private static ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
 	
@@ -73,16 +77,19 @@ public class ClassHandler implements InvocationHandler
         {
             //		mAllPropsRegistry.clear();
             mAllPropsRegistry = new HashMap<String, AttrWrapper>();
+            rootNode = this;
         }
 	}
 	
 	
-	private ClassHandler(String parentName, AttrWrapper aW)
+	private ClassHandler(String parentName, AttrWrapper aW, ClassHandler aRootNode)
     {
 		// TODO sanity check
 		mParentName = parentName;
 	    mAW = aW;
 	    mSourceClass = mAW.getType();
+        rootNode = aRootNode;
+        mAllPropsRegistry = rootNode.mAllPropsRegistry;
     }
 
 	public void analyze(Object instance)
@@ -111,7 +118,7 @@ public class ClassHandler implements InvocationHandler
 			if (aw.isAnnotationPresent(Set4Module.class))
 			{
 				//mModules.put(aw.getStrippedName(), new ClassHandler(name, aw.getType())); 
-				mModules.put(aw.getName(), new ClassHandler(name, aw));
+				mModules.put(aw.getName(), new ClassHandler(name, aw, rootNode));
 				
 				continue;
 			}
@@ -219,7 +226,7 @@ public class ClassHandler implements InvocationHandler
 			if (aw.isAnnotationPresent(Set4Module.class))
 			{
 				//mModules.put(aw.getStrippedName(), new ClassHandler(name, aw.getType())); 
-				mModules.put(aw.getName(), new ClassHandler(name, aw));
+				mModules.put(aw.getName(), new ClassHandler(name, aw, rootNode));
 				
 				continue;
 			}
@@ -681,7 +688,7 @@ public class ClassHandler implements InvocationHandler
 			String strVal = p.getProperty((String)key);
 			if (strVal == null) continue;
 			aw.setValue(strVal);
-			aw.forbidOverride();
+			if (forbidOverride) aw.forbidOverride();
 		}
 
 	}
@@ -717,51 +724,55 @@ public class ClassHandler implements InvocationHandler
 	/**
      * 
      */
-    public void loadFromPropFiles(boolean forbidOverride)//Properties overrides)
+    public void loadFromPropFiles(boolean forbidOverride)
     {
-    	Set4PropFile pfp = getClassAnnotation(Set4PropFile.class);
-    	//Set4PropFile pfp = mSourceClass.getAnnotation(Set4PropFile.class);
-    	//if (isClassAnnotationPresent(Set4PropFile.class))
-    	if (pfp != null)
-    	{
-    		//Set4PropFile pfp = mSourceClass.getAnnotation(Set4PropFile.class);
+
+        List<Set4PropFile> annList = getClassAnnotation4all(Set4PropFile.class, mSourceClass);
+        //Queue<Properties> propFileList = new ArrayDeque<Properties>();
+        List<Properties> propFileList = new ArrayList<Properties>();
+
+        //list is in up down order, so we must reverse it
+        //for (Set4PropFile pfp : annList)
+        while (!annList.isEmpty())
+        {
+            Set4PropFile pfp = annList.remove(annList.size()-1);
     		int levels = pfp.files().length;
     		String root = pfp.location();
     		if (root == null) root = "";
     		else root = root + '/';
-    		Properties[] pff = new Properties[levels];
+    		//Properties[] pff = new Properties[levels];
     		if (LocationType.file == pfp.type())
     		{
 				throw new Set4JException("TODO");
     		} else
     		if (LocationType.resource == pfp.type())
     		{
-    			int idx = 0;
     			for (String fname : pfp.files())
     			{
-    				String fileName = substVars(root + fname, null);
+    				String fileName = substVars(root + fname, null, null);
     				InputStream io = getResourceStream(fileName);
-    				pff[idx] = new Properties();
+    				Properties propFile = new Properties();
+                    propFileList.add(propFile);
     				if (io == null) Log.error("Cannot locate resource " + fname + " -> " + fileName);
                     else
 	                    try
                         {
                             Log.info("Loading resource " + fname + " -> " + fileName);
-	                    	pff[idx].load(io);
+                            propFile.load(io);
                         } catch (IOException e)
                         {
 	                        e.printStackTrace();
                         }
-    				idx++;
     			}
     		} else throw new Set4JException("Unknown location type! " + pfp.type());
     		// must fill it in reverse order
-    		for (int idx = pff.length-1; idx >-1; idx--)
-    		{
-    			overrides(pff[idx], forbidOverride);
-    		}
     	}
-	    
+        while (!propFileList.isEmpty())
+        {
+            Properties pff = propFileList.remove(0);
+            overrides(pff, false/*forbidOverride*/);
+        }
+
     }
     
 
@@ -795,8 +806,9 @@ public class ClassHandler implements InvocationHandler
     {
     	return getClassAnnotation(annClass, mSourceClass);
     }
+
     /**
-     * Returns first mathing annotation of the class and its superclass if defined, null otherwise.
+     * Returns first matching annotation of the class and its superclass if defined, null otherwise.
      * 
      * @param annClass
      * @param srcClass
@@ -813,15 +825,38 @@ public class ClassHandler implements InvocationHandler
             	A ann = getClassAnnotation(annClass, cls);
             	if (ann != null) return ann;
             }
-    		
-    		
     	}
     	
     	return getClassAnnotation(annClass, srcClass.getSuperclass());
     }
 
+    /**
+     * Return list of all Annotations for this class and its interfaces and its supers in this order.
+     * @param annClass
+     * @param srcClass
+     * @param <A>
+     * @return
+     */
+    private static <A extends Annotation> List<A> getClassAnnotation4all(Class<A> annClass, Class<?> srcClass)
+    {
+        List <A> list = new ArrayList<A>();
+        if (srcClass == null || Object.class == srcClass) return list;
+        if (srcClass.isAnnotationPresent(annClass)) list.add(srcClass.getAnnotation(annClass));
+        if (srcClass.isInterface())
+        {
+            for (Class<?> cls : srcClass.getInterfaces() )
+            {
+                A ann = getClassAnnotation(annClass, cls);
+                if (ann != null) list.add(ann);
+            }
+        }
 
-	private InputStream getResourceStream(String resName)
+        list.addAll(getClassAnnotation4all(annClass, srcClass.getSuperclass()));
+        return list;
+    }
+
+
+    private InputStream getResourceStream(String resName)
     {
 		ClassLoader ldr = Thread.currentThread().getContextClassLoader();
 		//log.debug("Trying load " + resName + " using " + ldr);
@@ -855,12 +890,12 @@ public class ClassHandler implements InvocationHandler
     static char   DELIM_STOP  = '}';
     static int DELIM_START_LEN = 2;
     static int DELIM_STOP_LEN  = 1;
-	public static String substVars(String val, Properties overrides) throws IllegalArgumentException
+	/*public static String substVars(String val, Properties overrides) throws IllegalArgumentException
 	{
 		return substVars(val, overrides, null);
-	}
+	}*/
     
-	public static String substVars(String val, Properties overrides, AttrWrapper noErrDoObserveAttr) throws IllegalArgumentException
+	public /*static*/ String substVars(String val, Properties overrides, AttrWrapper noErrDoObserveAttr) throws IllegalArgumentException
 	{
 
 		StringBuffer sbuf = new StringBuffer();
@@ -987,10 +1022,11 @@ public class ClassHandler implements InvocationHandler
      * for internal use only!
      * @return
      */
-    public static Map<String, AttrWrapper> getRegistry()
+    public Map<String, AttrWrapper> getRegistry()
     {
         return mAllPropsRegistry;
     }
+
 
     public void enableOverride()
     {

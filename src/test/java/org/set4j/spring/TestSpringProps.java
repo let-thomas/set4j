@@ -22,12 +22,13 @@ public class TestSpringProps
         Properties p = new Properties();
         p.put("customer", "comp1");
         p.put("env", "local");
+        p.put("set4j.loglevel","trace");
 
         MainS s = Initializer.init(MainS.class, p);
 
-        assertEquals(s.getPrintingServer(), "svr3");
-        assertEquals(s.getA().viewName(), "roger");
-        assertEquals(s.getA().isEnabled(), true);
+        assertEquals("serverpf-full", s.getPrintingServer());
+        assertEquals("roger", s.getA().viewName());
+        assertEquals(true, s.getA().isEnabled());
 
         //
         ApplicationContext context =

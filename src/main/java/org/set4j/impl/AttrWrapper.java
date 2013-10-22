@@ -192,7 +192,22 @@ public class AttrWrapper
 	}
 	public void setValue(Object value)
 	{
-		if (mFixed) return;
+        if (Log.isDebug())
+        {
+            StringBuffer msg = new StringBuffer();
+            if (mField != null) msg.append(mField.getName());
+            else msg.append(mMethod.getName());
+            msg.append("='").append(value).append("'");
+            if (mFixed)
+            {
+                msg.append(" SKIPPING!");
+                Log.trace(msg.toString());
+                return;
+            } else
+            {
+                Log.trace(msg.toString());
+            }
+        }
 		
 		// should ensure types? ... will fail anyway
 		String setterName = null; 
@@ -406,10 +421,10 @@ public class AttrWrapper
     				{
     					String key = when[i].what();
     					// is name in registry already?
-    					AttrWrapper attrValue = ClassHandler.mAllPropsRegistry.get(key);
+    					AttrWrapper attrValue = mDeclaringHandler.getRegistry().get(key);
     					if (attrValue != null && attrValue.notFake())
     					{
-    						//AttrWrapper attrValue = ClassHandler.mAllPropsRegistry.get(key);
+    						//AttrWrapper attrValue = mDeclaringHandler.getRegistry().get(key);
     						
     						//bind as observer
     						attrValue.addObserver(aw);
@@ -466,11 +481,11 @@ public class AttrWrapper
     					{
     						// check if key exists, if not create 'pre' one
     						//mDelayedEval.put(aw, t);
-    						AttrWrapper keyAW = ClassHandler.mAllPropsRegistry.get(key);
+    						AttrWrapper keyAW = mDeclaringHandler.getRegistry().get(key);
     						if (keyAW == null)
     						{
     							keyAW = new AttrWrapper();
-    							ClassHandler.mAllPropsRegistry.put(key, keyAW);
+    							mDeclaringHandler.getRegistry().put(key, keyAW);
     						}
     						keyAW.addObserver(aw);
     						//return; // do not return, set default if any
@@ -484,10 +499,10 @@ public class AttrWrapper
 
     		if (strVal != null)	//set only if we have some value, keep otherwise 
     		{
-    			strVal = ClassHandler.substVars(strVal, null, aw);
+    			strVal = mDeclaringHandler.substVars(strVal, null, aw);
     			try 
     			{
-    				aw.setValue( ClassHandler.substVars(strVal, null) );
+    				aw.setValue( mDeclaringHandler.substVars(strVal, null, null) );
     			} 
     			catch (Set4JException e)
     			{

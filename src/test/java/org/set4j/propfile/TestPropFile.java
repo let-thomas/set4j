@@ -4,6 +4,7 @@ import java.util.Properties;
 
 import junit.framework.Assert;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.set4j.Initializer;
@@ -20,14 +21,24 @@ public class TestPropFile
 	public void before()
 	{
 		configClass = MainS.class;
+        System.setProperty("set4j.loglevel","trace");
 	}
-	
-	@Test
+
+    @After
+    public void uninit()
+    {
+        Initializer.uninitialize(MainS.class);
+        System.clearProperty("set4j.loglevel");
+    }
+
+
+    @Test
 	public void testNoCfg()
 	{
-		try {
-			MainS s = Initializer.init(configClass);
-			// should not reach, error about missing vals
+		try
+        {
+            MainS s = Initializer.init(configClass);
+            // should not reach, error about missing vals
 			Assert.assertEquals(s.getPrintingServer(), "localhost");
 		} catch (org.set4j.Set4JException e)
 		{
@@ -36,15 +47,16 @@ public class TestPropFile
 	}
 
 	@Test
-	public void testBacis1Cfg()
+	public void testBasic1Cfg()
 	{
 		Properties p = new Properties();
 		p.put("customer", "comp1");
 		p.put("env", "local");
-	
+        //p.put("set4j.loglevel","trace");
+
 		MainS s = Initializer.init(configClass, p);
-		
-		Assert.assertEquals(s.getPrintingServer(), "svr3");
+
+        Assert.assertEquals(s.getPrintingServer(), "serverpf-full");
 		Assert.assertEquals(s.getA().viewName(), "roger");
 		Assert.assertEquals(s.getA().isEnabled(), true);
 	}
@@ -58,10 +70,10 @@ public class TestPropFile
 		p.put("printingServer", "nie mame");
 		p.put("a.viewName", "dbuser");
 		p.put("a.enabled", "false");
-		
-		MainS s = Initializer.init(configClass, p);
-		
-		Assert.assertEquals(s.getPrintingServer(), "nie mame");
+
+        MainS s = Initializer.init(configClass, p);
+
+        Assert.assertEquals(s.getPrintingServer(), "nie mame");
 	}
 
 	@Test
@@ -76,8 +88,8 @@ public class TestPropFile
 		/*
 		p.put("printingServer", "nie mame");
 		*/
-		
-		MainS s = Initializer.init(configClass, p);
+
+        MainS s = Initializer.init(configClass, p);
 		
 		Assert.assertEquals("localhost", s.getEnv());
 		Assert.assertEquals(Customer.firmaAG4, s.getCustomer());
@@ -96,8 +108,8 @@ public class TestPropFile
 
 		MainS s = Initializer.init(configClass);
 		
-		Assert.assertEquals("svr3", s.getPrintingServer());
-		Assert.assertEquals("roger", s.getA().viewName());
+		Assert.assertEquals(s.getPrintingServer(), "serverpf-full");
+		Assert.assertEquals(s.getA().viewName(), "roger");
 		Assert.assertEquals(true, s.getA().isEnabled());
 	    
 		System.clearProperty("customer");

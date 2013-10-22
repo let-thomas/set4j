@@ -5,7 +5,7 @@
 
     <bean class="org.set4j.SpringPropertyResolver">
         <property name="configClass">
-            <value>org.set4j.propfile.TestPropFile</value>
+            <value>org.set4j.propfile.MainS</value>
         </property>
     </bean>
 

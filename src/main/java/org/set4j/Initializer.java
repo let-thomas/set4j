@@ -1,6 +1,8 @@
 package org.set4j;
 
 import org.set4j.impl.ClassHandler;
+import org.set4j.impl.Log;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +16,7 @@ public class Initializer
 {
     private static boolean mTraceSuperClass = true;
     public static HashMap<Class, Object> AllConfigs = new HashMap<Class, Object>();
+    public static HashMap<Class, ClassHandler> AllHandlers = new HashMap<Class, ClassHandler>();
 
     /**
      * Returns initialized instance of <i>settingClass</i> type (or its ancestors) if exists.
@@ -33,6 +36,11 @@ public class Initializer
             }
         }
         throw new Set4JException("Cannot find class type");
+    }
+
+    protected static ClassHandler getHandlerForClass(Class settingClass)
+    {
+        return AllHandlers.get(settingClass);
     }
 
     public static <T> T init(T settingObject) throws Set4JException
@@ -70,9 +78,13 @@ public class Initializer
      */
     //private static <T> T initClass(String prefix, Class<T> settingClass, T settingObject, String[] args)
     @SuppressWarnings("unchecked")
-    private static <T> T initClass(Class<? extends Object> settingClass, T settingObject, String[] args, Properties overrides)
+    private static synchronized  <T> T initClass(Class<? extends Object> settingClass, T settingObject, String[] args, Properties overrides)
     	throws Set4JException
     {
+        Log.setup(overrides);
+
+        Log.debug("initializing class " + settingClass.getName());
+        System.out.println("initializing class " + settingClass.getName());
     	String prefix = "";
 		T instance = settingObject;
 		ClassHandler handler = new ClassHandler(prefix, settingClass, true);
@@ -82,7 +94,34 @@ public class Initializer
 		{
 			instance = (T)handler.createInstance();
 		}
-        AllConfigs.put(settingClass, instance);
+        boolean isInTesting = Boolean.getBoolean("set4j.test") || Boolean.valueOf(overrides == null ? null : overrides.getProperty("set4j.test"));
+        System.out.println("isInTesting = " + isInTesting);
+        if (isInTesting)
+        {
+            int maxCountWait = 10;
+            for (Class key: AllConfigs.keySet())
+            {
+                System.out.println("key: " + key);
+            }
+            while (AllConfigs.containsKey(settingClass) && (maxCountWait-- < 0))
+            {
+                System.out.println("waiting");
+                try
+                {
+                    Thread.sleep(500);
+                } catch (InterruptedException e)
+                {
+                    //e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                    System.out.println("waiting");
+                }
+            }
+        }
+        synchronized (AllConfigs) // because of uninitialize block
+        {
+            Object existing = AllConfigs.put(settingClass, instance);
+            if (existing != null) throw new Set4JException("Configuration class " + settingClass.getName() + " was already initialized!");
+            AllHandlers.put(settingClass, handler);
+        }
 
 		//System.out.println("init: " + settingClass.getName() + "; inst: " + instance + "; handler" + handler);
 		/*
@@ -154,5 +193,18 @@ public class Initializer
 		Field ret[] = new Field[aFields.size()];
 		return aFields.toArray(ret);
 	}
-    
+
+    public static void uninitialize(Class cls)
+    {
+        Log.debug("Uninitializing class " + cls.getName());
+        synchronized (AllConfigs)
+        {
+            AllConfigs.remove(cls);
+            AllHandlers.remove(cls);
+        }
+    }
+    public static void uninitialize(Object object)
+    {
+        uninitialize(object.getClass());
+    }
 }

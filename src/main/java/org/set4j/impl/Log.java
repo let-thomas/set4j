@@ -1,5 +1,7 @@
 package org.set4j.impl;
 
+import java.util.Properties;
+
 /**
  * Set4j logging class.
  * @author Tomas Mikenda
@@ -10,12 +12,30 @@ public class Log
     protected static LogLevel logLevel = LogLevel.INFO;
 
     static {
-        try {
-            logLevel = Enum.valueOf(LogLevel.class, System.getProperty("set4j.loglevel", LogLevel.INFO.toString()).toUpperCase());
+        setup(null);
+    }
 
+    public static void setup(Properties p)
+    {
+        String level = null;
+        try {
+
+            if (p != null) level = p.getProperty("set4j.loglevel");
+            if (level == null) level = System.getProperty("set4j.loglevel", LogLevel.INFO.toString()).toUpperCase();
+            else level = level.toUpperCase();
+            logLevel = Enum.valueOf(LogLevel.class, level);
+            Log.info("loglevel = " + logLevel);
         } catch (Exception e)
         {
-            System.err.println("set4j: loglevel - unsupported value; " + e);
+            System.err.println("set4j: loglevel - unsupported value " + level + "; exc: "  + e);
+        }
+    }
+
+    static void trace(String msg)
+    {
+        if (logLevel == LogLevel.TRACE)
+        {
+            printout(msg, null);
         }
     }
 

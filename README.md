@@ -1,6 +1,12 @@
-set4j
+SET4J
 =====
 
-Settings for Java
+Settings framework for Java
+
+
+Changelog
+=========
+see readme in resources
+
 
 Some other comments...

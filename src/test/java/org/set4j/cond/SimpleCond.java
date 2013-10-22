@@ -2,6 +2,7 @@ package org.set4j.cond;
 
 import junit.framework.Assert;
 
+import org.junit.After;
 import org.junit.Test;
 import org.set4j.Initializer;
 import org.set4j.Set4Nullable;
@@ -62,4 +63,10 @@ public class SimpleCond
 		Initializer.init(s);
 		Assert.assertEquals("BOOT &co", s.custName);
 	}
+    @After
+    public void uninit()
+    {
+        Initializer.uninitialize(Setting.class);
+    }
+
 }

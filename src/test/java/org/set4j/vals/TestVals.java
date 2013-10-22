@@ -4,6 +4,7 @@ import static junit.framework.Assert.*;
 
 import java.util.Properties;
 
+import org.junit.After;
 import org.junit.Test;
 import org.set4j.Initializer;
 
@@ -40,6 +41,12 @@ public class TestVals
         System.setProperty("set4j.loglevel", "debug");
         new TestVals().testRun2();
         Thread.sleep(Long.MAX_VALUE);
+    }
+
+    @After
+    public void uninit()
+    {
+        Initializer.uninitialize(Setting.class);
     }
 
 }
